@@ -7,3 +7,15 @@ before_install:
 
 script:
   - docker run danaya/urlshortener npm run test
+
+deploy:
+  provider: elasticbeanstalk
+  region: "us-east-2"
+  app: "urlshortener"
+  env: "Urlshortener-env"
+  bucket_name: "elasticbeanstalk-us-east-2-898544430015"
+  bucket_path: "urlshortener"
+  on:
+    branch: master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY

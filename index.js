@@ -8,11 +8,11 @@ const db = {
   byLongUrl: {},
   byUrlCode: {},
 };
-const baseUrl = "http://localhost:8000/v1";
+const baseUrl = "http://localhost:3000/v1";
 
 app.use(express.json({}));
 
-const PORT = 8000;
+const PORT = 3000;
 app.listen(PORT, () => console.log("Server is listening on port " + PORT));
 
 app.get("/v1/:shortUrl", getShortenUrlRoute);
