@@ -10,10 +10,10 @@ script:
 
 deploy:
   provider: elasticbeanstalk
-  region: "us-east-2"
+  region: "eu-west-1"
   app: "urlshortener"
   env: "Urlshortener-env"
-  bucket_name: "elasticbeanstalk-us-east-2-898544430015"
+  bucket_name: "elasticbeanstalk-eu-west-1-898544430015"
   bucket_path: "urlshortener"
   on:
     branch: master
