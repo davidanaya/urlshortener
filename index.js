@@ -19,6 +19,7 @@ app.get("/v1/:shortUrl", getShortenUrlRoute);
 app.post("/v1/shorturl", shortUrlRoute);
 
 async function getShortenUrlRoute(req, res) {
+  console.log("getShortenUrlRoute", req.params.shortUrl);
   var shortUrlCode = req.params.shortUrl;
   const url = db.byUrlCode[shortUrlCode];
 
@@ -42,6 +43,7 @@ async function getShortenUrlRoute(req, res) {
 }
 
 async function shortUrlRoute(req, res) {
+  console.log("shortUrlRoute", req.body.longUrl);
   const longUrl = req.body.longUrl;
   if (!validUrl.isUri(baseUrl)) {
     return res.status(401).json("Internal error. Please come back later.");
