@@ -1,23 +1,45 @@
 const express = require("express");
 const shortid = require("shortid");
 const validUrl = require("valid-url");
+const config = require("./config");
+
+const PORT = config.port;
+const baseUrl = `${config.host}:${PORT}`;
+
+// Express app setup
 
 const app = express();
 
-const db = {
-  byLongUrl: {},
-  byUrlCode: {},
-};
-const baseUrl = "http://localhost:3000/v1";
-
 app.use(express.json({}));
 
-const PORT = 3000;
-app.listen(PORT, () => console.log("Server is listening on port " + PORT));
+// Postgres client setup
 
-app.get("/v1/healthcheck", healthCheck);
-app.get("/v1/:shortUrl", getShortenUrlRoute);
-app.post("/v1/shorturl", shortUrlRoute);
+const { Pool } = require("pg");
+
+const pgClient = new Pool({
+  user: config.pgUser,
+  host: config.pgHost,
+  database: config.pgDatabase,
+  password: config.pgPassword,
+  port: config.pgPort,
+});
+
+pgClient
+  .query(
+    `CREATE TABLE IF NOT EXISTS urls (
+        code VARCHAR(14) PRIMARY KEY,
+        long TEXT UNIQUE,
+        short TEXT UNIQUE,
+        count INTEGER NOT NULL DEFAULT 0)`
+  )
+  .catch((err) => console.log(err));
+
+// Express route handlers
+
+app.get("/", (_req, res) => res.send("hi"));
+app.get("/healthcheck", healthCheck);
+app.get("/:code", getShortenUrlRoute);
+app.post("/shorturl", shortUrlRoute);
 
 function healthCheck(_req, res) {
   const health = {
@@ -32,32 +54,30 @@ function healthCheck(_req, res) {
   }
 }
 
-function getShortenUrlRoute(req, res) {
-  console.log("getShortenUrlRoute", req.params.shortUrl);
-  var shortUrlCode = req.params.shortUrl;
-  const url = db.byUrlCode[shortUrlCode];
+async function getShortenUrlRoute(req, res) {
+  const code = req.params.code;
 
   try {
-    if (url) {
-      const clickCount = url.clickCount;
-      const newUrl = { ...url, clickCount: clickCount + 1 };
-      db.byUrlCode[shortUrlCode] = newUrl;
-      return res.redirect(url.longUrl);
-    } else {
-      return res
-        .status(400)
-        .json("The short url doesn't exists in our system.");
-    }
-  } catch (err) {
-    console.error(
-      "Error while retrieving long url for shorturlcode " + shortUrlCode
+    const { rows } = await pgClient.query(
+      "SELECT * FROM urls WHERE code = $1",
+      [code]
     );
-    return res.status(500).json("There is some internal error.");
+    const url = rows[0];
+    if (url) {
+      await pgClient.query("UPDATE urls SET count = $1 WHERE code = $2", [
+        url.count + 1,
+        code,
+      ]);
+      return res.redirect(url.long);
+    }
+    return res.status(400).json("The short url doesn't exists in our system.");
+  } catch (err) {
+    console.error(err.message);
+    return res.status(500).json("Internal Server error " + err.message);
   }
 }
 
-function shortUrlRoute(req, res) {
-  console.log("shortUrlRoute", req.body.longUrl);
+async function shortUrlRoute(req, res) {
   const longUrl = req.body.longUrl;
   if (!validUrl.isUri(baseUrl)) {
     return res.status(401).json("Internal error. Please come back later.");
@@ -65,23 +85,24 @@ function shortUrlRoute(req, res) {
 
   if (validUrl.isUri(longUrl)) {
     try {
-      let urlCode = db.byLongUrl[longUrl];
-      if (urlCode) {
-        return res.status(200).json(db.byUrlCode[urlCode]);
+      const {
+        rows,
+      } = await pgClient.query("SELECT * FROM urls WHERE long = $1", [longUrl]);
+
+      if (rows[0]?.code) {
+        return res.status(200).json(rows[0]);
       } else {
-        urlCode = shortid.generate();
+        const code = shortid.generate();
+        const shortUrl = baseUrl + "/" + code;
 
-        const shortUrl = baseUrl + "/" + urlCode;
-        const url = {
-          longUrl,
-          shortUrl,
-          urlCode,
-          clickCount: 0,
-        };
+        const {
+          rows,
+        } = await pgClient.query(
+          "INSERT INTO urls(code, long, short) VALUES($1, $2, $3) RETURNING *",
+          [code, longUrl, shortUrl]
+        );
 
-        db.byLongUrl[longUrl] = urlCode;
-        db.byUrlCode[urlCode] = url;
-        return res.status(201).json(url);
+        return res.status(201).json(rows[0]);
       }
     } catch (err) {
       console.error(err.message);
@@ -93,3 +114,5 @@ function shortUrlRoute(req, res) {
       .json("Invalid URL. Please enter a valid url for shortening.");
   }
 }
+
+app.listen(PORT, () => console.log("Server is listening on port " + PORT));
