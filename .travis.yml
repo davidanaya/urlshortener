@@ -3,19 +3,23 @@ services:
   - docker
 
 before_install:
-  - docker build -t danaya/urlshortener .
+  - docker build -t davidanaya/urlshortener -f Dockerfile.dev .
 
 script:
-  - docker run danaya/urlshortener npm run test
+  - docker run davidanaya/urlshortener npm run test
 
-deploy:
-  provider: elasticbeanstalk
-  region: "eu-west-1"
-  app: "urlshortener"
-  env: "Urlshortener-env"
-  bucket_name: "elasticbeanstalk-eu-west-1-898544430015"
-  bucket_path: "urlshortener"
-  on:
-    branch: master
-  access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY
+after_success:
+  - docker build -t davidanaya/urlshortener .
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+  - docker push davidanaya/urlshortener
+# deploy:
+#   provider: elasticbeanstalk
+#   region: "eu-west-1"
+#   app: "urlshortener"
+#   env: "Urlshortener-env"
+#   bucket_name: "elasticbeanstalk-eu-west-1-898544430015"
+#   bucket_path: "urlshortener"
+#   on:
+#     branch: master
+#   access_key_id: $AWS_ACCESS_KEY
+#   secret_access_key: $AWS_SECRET_KEY
