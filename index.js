@@ -15,10 +15,24 @@ app.use(express.json({}));
 const PORT = 3000;
 app.listen(PORT, () => console.log("Server is listening on port " + PORT));
 
+app.get("/v1/healthcheck", healthCheck);
 app.get("/v1/:shortUrl", getShortenUrlRoute);
 app.post("/v1/shorturl", shortUrlRoute);
 
-async function getShortenUrlRoute(req, res) {
+function healthCheck(_req, res) {
+  const health = {
+    message: "OK",
+    timestamp: Date.now(),
+  };
+  try {
+    return res.json(health);
+  } catch (err) {
+    health.message = err;
+    return res.status(503).json(health);
+  }
+}
+
+function getShortenUrlRoute(req, res) {
   console.log("getShortenUrlRoute", req.params.shortUrl);
   var shortUrlCode = req.params.shortUrl;
   const url = db.byUrlCode[shortUrlCode];
@@ -42,7 +56,7 @@ async function getShortenUrlRoute(req, res) {
   }
 }
 
-async function shortUrlRoute(req, res) {
+function shortUrlRoute(req, res) {
   console.log("shortUrlRoute", req.body.longUrl);
   const longUrl = req.body.longUrl;
   if (!validUrl.isUri(baseUrl)) {
