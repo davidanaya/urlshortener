@@ -12,14 +12,15 @@ after_success:
   - docker build -t davidanaya/urlshortener .
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
   - docker push davidanaya/urlshortener
-# deploy:
-#   provider: elasticbeanstalk
-#   region: "eu-west-1"
-#   app: "urlshortener"
-#   env: "Urlshortener-env"
-#   bucket_name: "elasticbeanstalk-eu-west-1-898544430015"
-#   bucket_path: "urlshortener"
-#   on:
-#     branch: master
-#   access_key_id: $AWS_ACCESS_KEY
-#   secret_access_key: $AWS_SECRET_KEY
+
+deploy:
+  provider: elasticbeanstalk
+  region: "eu-west-1"
+  app: "urlshortener"
+  env: "Urlshortener-env"
+  bucket_name: "elasticbeanstalk-eu-west-1-898544430015"
+  bucket_path: "urlshortener"
+  on:
+    branch: master
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
