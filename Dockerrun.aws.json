@@ -5,6 +5,7 @@
       "name": "urlshortener",
       "image": "davidanaya/urlshortener",
       "essential": true,
+      "memory": 128,
       "portMappings": [
         {
           "hostPort": 3000,
